@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--ARTIFACT-START-->
+<title>行腳的記憶</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap">
+<style>
+/* Layout: a desk lit from above; the open book is tilted in 3D, pop-ups stand in the gutter, a field-notebook panel underneath carries the reading text. */
+:root{
+  --desk:#dfe6df; --desk-2:#cfd9d1; --fg:#25302b; --muted:#5b6b62; --line:#b9c6bd;
+  --card:#f4f7f1; --accent:#b8402f; --accent-fg:#fff8ef; --chip:#e7eee5;
+  /* book art colors stay the same in both themes: they are the printed paper */
+  --paper:#e3f0e1; --paper-ink:#2a2a28;
+  --hand:"LXGW WenKai TC","Kaiti TC","BiauKai","DFKai-SB","Noto Serif TC",serif;
+  --ui:"LXGW WenKai TC","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  --bw:min(calc(100vw - 32px), 860px);
+  --pw:calc(var(--bw) / 2);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --desk:#18211f; --desk-2:#111816; --fg:#e4ece5; --muted:#9db0a4; --line:#33433d;
+    --card:#1f2a27; --accent:#e0705c; --accent-fg:#1a1210; --chip:#26332f; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --desk:#18211f; --desk-2:#111816; --fg:#e4ece5; --muted:#9db0a4; --line:#33433d;
+  --card:#1f2a27; --accent:#e0705c; --accent-fg:#1a1210; --chip:#26332f; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{overflow-x:clip}
+body{
+  background:radial-gradient(120% 70% at 50% 30%, var(--desk), var(--desk-2));
+  background-color:var(--desk);
+  color:var(--fg); font-family:var(--ui); min-height:100vh;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:20px 48px; overflow-x:hidden;
+}
+header.top{max-width:860px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px}
+header.top h1{font-family:var(--hand);font-weight:700;font-size:clamp(20px,3.4vw,28px);margin:0;letter-spacing:.08em}
+header.top p{margin:0;color:var(--muted);font-size:14px}
+
+/* ---------- stage ---------- */
+.stage{
+  position:relative; width:var(--bw); margin:8px auto 0;
+  height:calc(var(--bw) * .90);
+  perspective:calc(var(--bw) * 2.2); perspective-origin:50% 0%;
+  touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:pointer;
+}
+.book{
+  position:absolute; left:0; top:calc(var(--bw) * .15);
+  width:var(--bw); height:calc(var(--pw) / .7);
+  --tilt:52deg; transform-style:preserve-3d; transform-origin:50% 50%;
+  transform:rotateX(var(--tilt)) translateX(var(--shift,0px));
+  transition:transform .9s cubic-bezier(.45,.05,.25,1);
+}
+.book.closed-front{--tilt:16deg; --shift:calc(var(--pw) * -.5)}
+.book.closed-back{--tilt:16deg; --shift:calc(var(--pw) * .5)}
+.shadow{
+  position:absolute; left:4%; right:4%; top:6%; bottom:-4%;
+  background:radial-gradient(closest-side, rgba(20,30,25,.38), transparent);
+  filter:blur(10px); transform:translateZ(-2px); transition:left .9s, right .9s;
+}
+.book.closed-front .shadow{left:52%} .book.closed-back .shadow{right:52%}
+#leaves{position:absolute;inset:0;transform-style:preserve-3d}
+.leaf{
+  position:absolute; left:50%; top:0; width:50%; height:100%;
+  transform-origin:0 50%; transform-style:preserve-3d;
+  transition:transform .9s cubic-bezier(.45,.05,.25,1);
+}
+.face{
+  position:absolute; inset:0; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  background-color:var(--paper); color:var(--paper-ink);
+  border-radius:0 3px 3px 0;
+}
+.face.back{transform:rotateY(180deg); border-radius:3px 0 0 3px}
+.face.front::after,.face.back::after{content:"";position:absolute;inset:0;pointer-events:none}
+.face.front::after{background:linear-gradient(to right, rgba(40,50,40,.28), rgba(40,50,40,.06) 7%, transparent 16%, transparent 96%, rgba(40,50,40,.08))}
+.face.back::after{background:linear-gradient(to left, rgba(40,50,40,.28), rgba(40,50,40,.06) 7%, transparent 16%, transparent 96%, rgba(40,50,40,.08))}
+.face.cover{background:#cfe3d1 url("cover.jpg") center/cover no-repeat}
+.face.cover::after{background:linear-gradient(to right, rgba(0,0,0,.25), transparent 4%, transparent 80%, rgba(255,255,255,.12))}
+
+/* printed page */
+.pg{position:absolute;inset:0;font-family:var(--hand);
+  background-image:var(--grain), var(--wash, none);
+}
+.pg-text{position:absolute;left:9%;right:9%;bottom:7%;display:flex;flex-direction:column;gap:calc(var(--pw)*.012)}
+.pg-kicker{font-size:calc(var(--pw)*.045);letter-spacing:.2em;color:#8b4a2b}
+.pg h3{margin:0;font-size:calc(var(--pw)*.105);line-height:1.1;font-weight:700;letter-spacing:.06em}
+.pg p{margin:0;font-size:calc(var(--pw)*.052);line-height:1.5;color:#3d4640}
+.pg-big{font-size:calc(var(--pw)*.15);font-weight:700;line-height:1;letter-spacing:.02em;color:#1f5a4a;font-variant-numeric:tabular-nums}
+.pg-big small{font-size:.4em;margin-left:.15em}
+.pg-cap{font-size:calc(var(--pw)*.05);color:#3d4640}
+.folio{position:absolute;bottom:3%;font-size:calc(var(--pw)*.04);color:#7a857c;font-family:var(--hand)}
+.face.front .folio{right:6%} .face.back .folio{left:6%}
+.pg-end{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pw)*.04);text-align:center;background-color:#cfe3d1}
+.pg-end svg{width:58%}
+.pg-end .t{font-size:calc(var(--pw)*.09);font-weight:700;letter-spacing:.18em}
+.pg-end .s{font-size:calc(var(--pw)*.05);color:#4a564e}
+
+/* ---------- pop-ups ---------- */
+.pops{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none}
+.pop{position:absolute;inset:0;transform-style:preserve-3d;transform:translateZ(5px)}
+.card{
+  position:absolute; transform-origin:50% 100%;
+  transform:rotateX(0deg); opacity:0;
+  transition:transform .55s cubic-bezier(.5,.05,.7,.3), opacity .25s .3s;
+}
+.card svg{display:block;width:100%;height:auto;overflow:visible}
+.card.up{
+  opacity:1; transform:rotateX(calc(var(--stand,4deg) - var(--tilt)));
+  transition:transform .85s cubic-bezier(.25,1.45,.45,1), opacity .2s;
+}
+.hint{
+  position:absolute; left:50%; bottom:2%; transform:translateX(-50%);
+  font-family:var(--hand); font-size:14px; color:var(--muted);
+  background:var(--card); border:1px solid var(--line); border-radius:999px; padding:4px 14px;
+  transition:opacity .4s; pointer-events:none;
+}
+.hint.off{opacity:0}
+
+/* ---------- controls ---------- */
+.controls{max-width:860px;margin:6px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.controls > button{
+  white-space:nowrap;
+  font:inherit; font-size:15px; color:var(--fg); background:var(--card);
+  border:1px solid var(--line); border-radius:999px; padding:8px 16px; cursor:pointer; min-width:96px;
+}
+.controls > button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.controls > button:disabled{opacity:.4;cursor:default}
+.controls > button:focus-visible,.dots button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.dots button{width:12px;height:12px;min-width:0;padding:0;border-radius:50%;background:var(--line);border:0;cursor:pointer}
+.dots button[aria-current="true"]{background:var(--accent);transform:scale(1.25)}
+
+/* ---------- notebook panel ---------- */
+.notes{
+  max-width:760px; margin:20px auto 0; background:var(--card);
+  border:1px solid var(--line); border-radius:6px; padding:22px clamp(16px,4vw,32px) 26px;
+  display:grid; gap:14px; transition:opacity .3s;
+}
+.notes.fade{opacity:.15}
+.notes .eyebrow{font-size:13px;letter-spacing:.14em;color:var(--accent)}
+.notes h2{font-family:var(--hand);font-size:clamp(24px,4vw,32px);margin:0;letter-spacing:.06em;text-wrap:balance}
+.notes p{margin:0;line-height:1.85;font-size:16px;max-width:62ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0}
+.facts div{background:var(--chip);border-radius:4px;padding:10px 12px;min-width:0}
+.facts dt{font-size:12px;color:var(--muted);letter-spacing:.1em}
+.facts dd{margin:2px 0 0;font-family:var(--hand);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.route{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.route li{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:start;padding:6px 0;position:relative}
+.route li::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent);margin:6px 0 0 4px}
+.route li:not(:last-child)::after{content:"";position:absolute;left:8px;top:22px;bottom:-8px;border-left:2px dotted var(--line)}
+.route b{font-weight:700}
+.route span{color:var(--muted);font-size:14px;display:block}
+.route em{font-style:normal;font-variant-numeric:tabular-nums;font-family:var(--hand);font-size:17px;white-space:nowrap}
+.restart{justify-self:start;font:inherit;background:var(--accent);color:var(--accent-fg);border:0;border-radius:999px;padding:9px 18px;cursor:pointer}
+.src{font-size:13px;color:var(--muted)}
+
+@media (max-width:560px){
+  .stage{height:calc(var(--bw) * 1.0)}
+  .book{top:calc(var(--bw) * .2)}
+  .controls > button{min-width:0;padding:8px 12px}
+  .dots{gap:5px}
+}
+@media (prefers-reduced-motion: reduce){
+  .book,.leaf,.card,.card.up,.shadow,.notes{transition:none !important}
+}
+</style>
+<!--HEAD-END-->
+</head>
+<body>
+<!--BODY-START-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="pencil" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="4" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="1" seed="9" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 .97  0 0 0 -3.4 1.55" result="speck"/>
+      <feComposite in="speck" in2="rough" operator="in" result="speckIn"/>
+      <feMerge><feMergeNode in="rough"/><feMergeNode in="speckIn"/></feMerge>
+    </filter>
+    <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <rect width="5" height="5" fill="none"/><line x1="0" y1="0" x2="0" y2="5" stroke="rgba(0,0,0,.12)" stroke-width="1.4"/>
+    </pattern>
+  </defs>
+</svg>
+
+<header class="top">
+  <h1>行腳的記憶</h1>
+  <p>雪霸國家公園 · 手繪立體書</p>
+</header>
+
+<div class="stage" id="stage" aria-label="立體書，點右半邊翻下一頁，點左半邊翻上一頁">
+  <div class="book closed-front" id="book">
+    <div class="shadow"></div>
+    <div id="leaves"></div>
+    <div class="pops" id="pops"></div>
+  </div>
+  <div class="hint" id="hint">點封面翻開</div>
+</div>
+
+<nav class="controls" aria-label="翻頁">
+  <button id="prev" type="button">← 上一頁</button>
+  <div class="dots" id="dots"></div>
+  <button id="next" type="button">翻開 →</button>
+</nav>
+
+<section class="notes" id="notes" aria-live="polite"></section>
+
+<script>
+(function(){
+  /* ---------- small drawing helpers (colored-pencil cut-outs) ---------- */
+  const F = 'filter="url(#pencil)"';
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  function fir(x, y, h, c, trunk){
+    const w = h * .36;
+    return `<path d="M${x} ${y-h} L${x-w*.62} ${y-h*.52} L${x-w*.3} ${y-h*.54} L${x-w*.86} ${y-h*.2} L${x-w*.4} ${y-h*.22} L${x-w} ${y} L${x+w} ${y} L${x+w*.4} ${y-h*.22} L${x+w*.86} ${y-h*.2} L${x+w*.3} ${y-h*.54} L${x+w*.62} ${y-h*.52}Z" fill="${c}"/>` +
+      (trunk === false ? '' : `<rect x="${x-h*.035}" y="${y-1}" width="${h*.07}" height="${h*.1}" fill="#6b3f2a"/>`);
+  }
+  function firRow(x0, x1, y, hMin, hMax, colors, step){
+    let s = '';
+    for (let x = x0; x <= x1; x += step * (0.7 + rnd() * .6)){
+      s += fir(x, y + rnd() * 6, hMin + rnd() * (hMax - hMin), colors[Math.floor(rnd() * colors.length)], false);
+    }
+    return s;
+  }
+  function blossom(x, y, r){
+    return `<rect x="${x-2}" y="${y}" width="4" height="${r*1.3}" fill="#7a4a35"/>` +
+      `<circle cx="${x}" cy="${y-2}" r="${r}" fill="#f0a8b8"/><circle cx="${x-r*.6}" cy="${y+r*.2}" r="${r*.7}" fill="#e98fa5"/><circle cx="${x+r*.65}" cy="${y+r*.15}" r="${r*.7}" fill="#f6c3cf"/>`;
+  }
+  const svg = (vb, body) => `<svg viewBox="0 0 ${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g ${F}>${body}</g></svg>`;
+  const label = (x, y, t, size, anchor) => `<text x="${x}" y="${y}" font-family="LXGW WenKai TC, Kaiti TC, serif" font-weight="700" font-size="${size||14}" fill="#2a2a28" text-anchor="${anchor||'middle'}">${t}</text>`;
+  function tag(x, y, t, sub){
+    const sw = sub ? [...sub].reduce((n, ch) => n + (ch.charCodeAt(0) > 255 ? 11.5 : 6.6), 0) : 0;
+    const w = Math.max(t.length * 15, sw) + 18;
+    return `<g><rect x="${x - w/2}" y="${y}" width="${w}" height="${sub?38:24}" rx="3" fill="#fbf6e6" stroke="#8b4a2b" stroke-width="1.2"/>` +
+      label(x, y + 17, t, 14) + (sub ? `<text x="${x}" y="${y+32}" font-family="LXGW WenKai TC, serif" font-size="11" fill="#5b4a3a" text-anchor="middle">${sub}</text>` : '') + `</g>`;
+  }
+
+  /* ---------- pop-up art ---------- */
+  const farRange = (a, b, cap) => svg('400 150',
+    `<path d="M0 150V96 L38 72 L66 84 L104 44 L132 62 L150 56 L188 30 L214 46 L236 20 L270 58 L300 44 L336 70 L372 52 L400 64 V150Z" fill="${a}"/>` +
+    (cap ? `<path d="M188 30 L176 41 L189 38 L198 46 L206 40 L214 46Z M236 20 L222 36 L236 32 L245 41 L254 38Z M104 44 L94 54 L106 51 L114 56Z" fill="#f4f8f6"/>` : '') +
+    `<path d="M0 150V114 L50 98 L90 110 L140 88 L190 102 L250 82 L300 100 L350 90 L400 106V150Z" fill="${b}"/>` +
+    `<path d="M0 150V114 L50 98 L90 110 L140 88 L190 102 L250 82 L300 100 L350 90 L400 106V150Z" fill="url(#hatch)"/>`);
+
+  const ART = {
+    s1range: farRange('#a9d0df', '#7fb3c3', true),
+    s1green: svg('400 120',
+      `<path d="M0 120V72 Q60 40 120 58 T240 44 T400 64 V120Z" fill="#86b98e"/>` +
+      `<path d="M0 120V72 Q60 40 120 58 T240 44 T400 64 V120Z" fill="url(#hatch)"/>` +
+      firRow(8, 392, 116, 26, 46, ['#2f7a5f', '#3f8c6a', '#2a6b57', '#4f9a76'], 15)),
+    s1sign: svg('170 130',
+      `<rect x="30" y="40" width="9" height="90" fill="#7a4a2e"/><rect x="131" y="40" width="9" height="90" fill="#7a4a2e"/>` +
+      `<rect x="10" y="20" width="150" height="62" rx="4" fill="#a8683a"/><rect x="16" y="26" width="138" height="50" rx="2" fill="none" stroke="#6e3f22" stroke-width="2"/>` +
+      `<text x="85" y="54" font-family="LXGW WenKai TC, Kaiti TC, serif" font-weight="700" font-size="21" fill="#fff6e2" text-anchor="middle">雪霸國家公園</text>` +
+      `<text x="85" y="70" font-family="LXGW WenKai TC, serif" font-size="9" letter-spacing="1.5" fill="#f3dfc0" text-anchor="middle">SHEI-PA NATIONAL PARK</text>` +
+      `<path d="M0 130 Q40 112 85 118 T170 126 V130Z" fill="#9cbf6b"/>`),
+    s1trees: svg('130 170', fir(40, 160, 150, '#2f7a5f') + fir(92, 162, 110, '#3f8c6a') + fir(70, 166, 70, '#9a4a32')),
+
+    s2peak: svg('400 230',
+      `<path d="M0 230 L60 160 L110 128 L150 76 L192 34 L216 24 L242 38 L282 76 L322 116 L362 146 L400 162 V230Z" fill="#7aa6b5"/>` +
+      `<path d="M0 230 L60 160 L110 128 L150 76 L192 34 L216 24 L242 38 L282 76 L322 116 L362 146 L400 162 V230Z" fill="url(#hatch)"/>` +
+      `<path d="M150 76 L192 34 L216 24 L242 38 L282 76 L264 82 L250 70 L234 86 L216 72 L198 88 L182 72 L166 86Z" fill="#f3f7f5"/>` +
+      `<path d="M178 80 Q216 128 256 80 Q236 98 216 98 Q196 98 178 80Z" fill="#d9e7ec"/>` +
+      `<path d="M182 84 Q216 120 252 84" fill="none" stroke="#5d8797" stroke-width="2"/>` +
+      `<path d="M60 230 L110 170 L150 150 L190 168 L240 150 L290 172 L340 168 L400 190 V230Z" fill="#5f8f8a"/>` +
+      `<line x1="216" y1="24" x2="216" y2="2" stroke="#3a2a20" stroke-width="2"/><path d="M216 3 L238 8 L216 14Z" fill="#c8423a"/>` +
+      tag(320, 8, '雪山主峰', '3,886 m') + label(216, 124, '圈谷', 13)),
+    s2forest: svg('400 110',
+      `<rect x="0" y="96" width="400" height="14" fill="#33584c"/>` +
+      firRow(6, 394, 102, 50, 88, ['#1d4a3f', '#24574a', '#173d34', '#2c6252'], 13) +
+      tag(70, 4, '黑森林', '台灣冷杉純林')),
+    s2hut: svg('150 96',
+      `<path d="M0 96 Q40 52 150 40 V96Z" fill="#b9c97a"/><path d="M0 96 Q40 52 150 40 V96Z" fill="url(#hatch)"/>` +
+      `<rect x="52" y="44" width="58" height="26" fill="#ece5d6"/><path d="M45 47 L81 26 L117 47Z" fill="#c8423a"/>` +
+      `<rect x="60" y="52" width="10" height="9" fill="#5d7d8a"/><rect x="76" y="52" width="10" height="9" fill="#5d7d8a"/><rect x="94" y="54" width="10" height="16" fill="#7a4a2e"/>` +
+      label(81, 90, '三六九山莊', 12)),
+    s2trees: svg('130 150', fir(36, 140, 128, '#2a6b57') + fir(92, 144, 96, '#3f8c6a')),
+
+    s3ridge: svg('400 130',
+      `<path d="M0 130 V82 L30 66 L52 74 L80 50 L104 60 L126 40 L150 56 L176 46 L200 62 L224 44 L250 58 L282 34 L306 50 L330 42 L360 60 L400 50 V130Z" fill="#94b6c4"/>` +
+      `<path d="M0 130 V82 L30 66 L52 74 L80 50 L104 60 L126 40 L150 56 L176 46 L200 62 L224 44 L250 58 L282 34 L306 50 L330 42 L360 60 L400 50 V130Z" fill="url(#hatch)"/>` +
+      `<path d="M10 80 L30 68 L52 76 L80 52 L104 62 L126 42 L150 58 L176 48 L200 64 L224 46 L250 60 L282 36 L306 52 L330 44 L360 62 L392 52" fill="none" stroke="#b8402f" stroke-width="2" stroke-dasharray="4 4"/>` +
+      `<path d="M0 130 V104 L60 92 L130 102 L200 88 L270 100 L340 90 L400 98 V130Z" fill="#6f9c86"/>` +
+      label(30, 20, '雪山', 13, 'start') + label(370, 20, '大霸', 13, 'end') + label(200, 20, '聖稜線', 15)),
+    s3daba: svg('170 210',
+      `<path d="M0 210 L30 160 L52 128 L118 128 L140 160 L170 210Z" fill="#7f9172"/><path d="M0 210 L30 160 L52 128 L118 128 L140 160 L170 210Z" fill="url(#hatch)"/>` +
+      `<path d="M56 130 L53 74 Q53 46 66 42 L104 42 Q117 46 117 74 L114 130Z" fill="#a5796a"/>` +
+      `<path d="M56 130 L53 74 Q53 46 66 42 L104 42 Q117 46 117 74 L114 130Z" fill="url(#hatch)"/>` +
+      [56,68,80,92,104,116].map(y => `<path d="M${54} ${y} Q85 ${y+5} ${116} ${y}" fill="none" stroke="#6d4e43" stroke-width="1.6"/>`).join('') +
+      `<path d="M66 42 Q85 36 104 42" fill="none" stroke="#6d4e43" stroke-width="2"/>` +
+      tag(85, 0, '大霸尖山', '3,492 m')),
+    s3xiaoba: svg('100 170',
+      `<path d="M0 170 L22 120 L78 120 L100 170Z" fill="#7f9172"/>` +
+      `<path d="M32 122 L40 74 Q46 44 52 40 Q60 44 64 74 L70 122Z" fill="#96705f"/>` +
+      `<path d="M32 122 L40 74 Q46 44 52 40 Q60 44 64 74 L70 122Z" fill="url(#hatch)"/>` + label(52, 30, '小霸', 13)),
+    s3cloud: svg('400 60',
+      `<path d="M0 60 V36 Q20 18 44 30 Q60 10 86 26 Q104 12 124 28 Q146 14 168 30 Q190 16 212 30 Q236 12 258 28 Q280 16 300 30 Q324 12 346 28 Q370 16 400 32 V60Z" fill="#f6f9fa"/>` +
+      `<path d="M0 60 V46 Q40 36 80 46 T160 46 T240 46 T320 46 T400 46 V60Z" fill="#cfe1ea"/>`),
+
+    s4range: farRange('#9cc6d8', '#86b3a4', true),
+    s4forest: svg('400 120',
+      `<path d="M0 120 V80 Q100 56 200 70 T400 68 V120Z" fill="#8fbf86"/>` +
+      firRow(10, 390, 112, 34, 60, ['#2f7a5f', '#3f8c6a', '#2a6b57'], 22) +
+      blossom(50, 86, 15) + blossom(130, 92, 13) + blossom(250, 88, 16) + blossom(340, 92, 13) +
+      tag(330, 4, '武陵', '春天的櫻花林')),
+    s4stream: svg('400 70',
+      `<rect x="0" y="0" width="400" height="70" rx="6" fill="#a5c879"/>` +
+      `<path d="M0 34 C80 18 130 46 200 30 S330 14 400 26 V48 C330 36 280 58 200 52 S70 44 0 58Z" fill="#5cb0d2"/>` +
+      `<path d="M30 40 C80 32 120 50 170 40 M230 38 C280 30 320 32 370 36" fill="none" stroke="#e8f6fb" stroke-width="2"/>` +
+      `<ellipse cx="60" cy="16" rx="12" ry="6" fill="#9a958a"/><ellipse cx="300" cy="60" rx="14" ry="6" fill="#9a958a"/><ellipse cx="160" cy="62" rx="9" ry="5" fill="#b3ad9f"/>` +
+      label(370, 16, '七家灣溪', 12, 'end')),
+    s4fish: svg('130 90',
+      `<path d="M14 72 Q36 26 88 22 Q106 22 116 32 Q104 40 90 40 Q52 44 24 78Z" fill="#d08f92"/>` +
+      `<path d="M30 52 Q52 28 90 24 Q104 24 112 30 Q90 28 60 38 Q42 46 30 52Z" fill="#55706a"/>` +
+      `<path d="M14 72 L2 66 L8 84 L24 78Z" fill="#55706a"/>` +
+      [[46,46],[58,38],[72,33],[84,30]].map(p => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="4" ry="2.4" fill="#3b4744"/>`).join('') +
+      `<circle cx="104" cy="29" r="2.2" fill="#1d1d1d"/>` +
+      `<path d="M20 88 Q30 78 40 88 M8 86 l-6 -8 M44 84 l6 -8" stroke="#5cb0d2" stroke-width="3" fill="none"/>`),
+
+    s5tree: svg('200 270',
+      `<path d="M82 270 C86 210 72 160 88 100 L114 100 C130 160 116 210 124 270Z" fill="#8b4a2b"/>` +
+      `<path d="M92 260 C94 210 86 160 96 110 M108 260 C110 210 104 170 108 112" stroke="#5e2f1a" stroke-width="2" fill="none"/>` +
+      `<path d="M100 130 C70 110 50 120 40 100 M104 120 C130 96 150 104 164 86" stroke="#8b4a2b" stroke-width="7" fill="none"/>` +
+      `<circle cx="60" cy="74" r="40" fill="#2f7a5f"/><circle cx="140" cy="66" r="44" fill="#3f8c6a"/><circle cx="100" cy="40" r="40" fill="#2a6b57"/>` +
+      `<circle cx="34" cy="106" r="24" fill="#3f8c6a"/><circle cx="170" cy="96" r="26" fill="#2f7a5f"/>` +
+      `<circle cx="60" cy="74" r="40" fill="url(#hatch)"/><circle cx="140" cy="66" r="44" fill="url(#hatch)"/>` +
+      tag(100, 226, '紅檜巨木', '觀霧 · 檜山')),
+    s5bear: svg('130 150',
+      `<ellipse cx="65" cy="110" rx="46" ry="40" fill="#242424"/>` +
+      `<circle cx="65" cy="54" r="30" fill="#242424"/><circle cx="40" cy="30" r="11" fill="#242424"/><circle cx="90" cy="30" r="11" fill="#242424"/>` +
+      `<ellipse cx="65" cy="64" rx="13" ry="10" fill="#b08a62"/><ellipse cx="65" cy="58" rx="5" ry="3.5" fill="#111"/>` +
+      `<circle cx="54" cy="48" r="3" fill="#eee"/><circle cx="76" cy="48" r="3" fill="#eee"/>` +
+      `<path d="M42 88 L65 112 L88 88 L80 88 L65 102 L50 88Z" fill="#f4f1e6"/>` +
+      `<ellipse cx="34" cy="142" rx="14" ry="8" fill="#242424"/><ellipse cx="96" cy="142" rx="14" ry="8" fill="#242424"/>`),
+    s5pheasant: svg('170 120',
+      `<path d="M70 70 L4 40 L8 48 L70 82Z" fill="#2f3a5c"/>` +
+      [16,30,44,58].map(x => `<path d="M${x} ${44 + (x-4)*.45} l4 -2 l2 8 l-4 2Z" fill="#f2f0e8"/>`).join('') +
+      `<ellipse cx="104" cy="76" rx="38" ry="24" fill="#2b3a6a"/><ellipse cx="104" cy="76" rx="38" ry="24" fill="url(#hatch)"/>` +
+      `<path d="M126 64 Q132 36 140 30 Q152 28 152 40 Q148 52 140 66Z" fill="#26325c"/>` +
+      `<ellipse cx="145" cy="38" rx="6" ry="7" fill="#c8423a"/><path d="M152 38 L162 42 L152 44Z" fill="#c7b37a"/><circle cx="146" cy="37" r="1.6" fill="#111"/>` +
+      `<path d="M98 98 L94 116 M112 98 L116 116" stroke="#6f7f66" stroke-width="3"/>` + label(104, 16, '帝雉', 14)),
+    s5serow: svg('150 160',
+      `<path d="M0 160 L18 112 L52 96 L100 104 L132 120 L150 160Z" fill="#8f8a7e"/><path d="M0 160 L18 112 L52 96 L100 104 L132 120 L150 160Z" fill="url(#hatch)"/>` +
+      `<ellipse cx="72" cy="70" rx="34" ry="18" fill="#5a4636"/>` +
+      `<path d="M98 66 L112 40 Q120 34 128 40 L128 52 Q118 60 110 72Z" fill="#5a4636"/>` +
+      `<path d="M114 38 L110 26 M122 36 L122 24" stroke="#2a2420" stroke-width="3"/>` +
+      `<path d="M112 56 Q118 66 108 74 L104 66Z" fill="#d9c9a8"/>` +
+      `<path d="M50 84 L48 102 M62 86 L62 100 M84 86 L86 102 M94 82 L98 98" stroke="#3a2c22" stroke-width="5"/>` +
+      `<path d="M50 54 Q70 46 98 58" stroke="#2a2420" stroke-width="4" fill="none"/>` + label(70, 140, '長鬃山羊', 13)),
+    s5sala: svg('130 54',
+      `<path d="M10 30 Q40 18 76 26 Q100 30 124 18 Q104 38 76 38 Q40 42 10 34Z" fill="#8a6a42"/>` +
+      `<ellipse cx="14" cy="31" rx="9" ry="6" fill="#8a6a42"/><circle cx="11" cy="28" r="1.5" fill="#111"/>` +
+      `<path d="M30 34 l-6 10 M36 26 l-6 -8 M62 38 l4 10 M66 28 l4 -8" stroke="#8a6a42" stroke-width="3"/>` +
+      `<path d="M24 30 Q50 26 80 30" stroke="#b8945e" stroke-width="2" fill="none"/>`),
+
+    s6range: svg('400 210',
+      `<path d="M0 210 V140 L50 112 L90 124 L140 86 L180 100 L240 30 L262 22 L284 34 L330 80 L370 96 L400 90 V210Z" fill="#8fb8c6"/>` +
+      `<path d="M0 210 V140 L50 112 L90 124 L140 86 L180 100 L240 30 L262 22 L284 34 L330 80 L370 96 L400 90 V210Z" fill="url(#hatch)"/>` +
+      `<path d="M240 30 L262 22 L284 34 L272 42 L262 34 L250 44Z" fill="#f3f7f5"/>` +
+      `<path d="M0 210 V170 L70 150 L150 162 L230 140 L320 156 L400 146 V210Z" fill="#78ae86"/>` +
+      `<path d="M30 200 Q70 176 110 168 Q150 150 140 120 Q160 106 190 112 Q220 96 230 70 Q248 50 262 24" fill="none" stroke="#b8402f" stroke-width="2.4" stroke-dasharray="5 5"/>` +
+      `<line x1="262" y1="22" x2="262" y2="4" stroke="#3a2a20" stroke-width="2"/><path d="M262 5 L280 9 L262 14Z" fill="#c8423a"/>` +
+      `<circle cx="30" cy="200" r="4" fill="#b8402f"/>` + label(44, 194, '武陵', 12, 'start') +
+      `<circle cx="140" cy="120" r="4" fill="#b8402f"/>` + label(152, 122, '東峰', 12, 'start') +
+      `<circle cx="190" cy="112" r="4" fill="#b8402f"/>` + label(198, 128, '369', 12, 'start') +
+      label(296, 22, '主峰', 13, 'start')),
+    s6hiker: svg('120 230',
+      `<path d="M0 230 L10 200 L40 188 L80 190 L112 204 L120 230Z" fill="#8a857a"/><path d="M0 230 L10 200 L40 188 L80 190 L112 204 L120 230Z" fill="url(#hatch)"/>` +
+      `<path d="M44 196 L40 176 L56 176 L58 196Z M68 196 L70 176 L84 176 L86 196Z" fill="#e5a835"/>` +
+      `<path d="M44 186 L46 140 L56 140 L54 180Z M70 180 L70 140 L82 140 L82 180Z" fill="#e2702f"/>` +
+      `<path d="M38 104 L90 104 L88 146 L68 146 L64 128 L60 146 L40 146Z" fill="#3a2e2a"/>` +
+      `<path d="M40 56 L90 56 L92 108 L38 108Z" fill="#efb52c"/>` +
+      `<path d="M44 62 L26 40 L28 32 L36 30 L50 52Z" fill="#efb52c"/>` +
+      `<rect x="10" y="22" width="22" height="13" rx="3" fill="#2d2d2d"/><rect x="2" y="25" width="10" height="8" rx="2" fill="#555"/>` +
+      `<path d="M58 40 L86 40 L104 54 L108 108 L96 116 L62 116 L56 60Z" fill="#c8423a"/><path d="M58 40 L86 40 L104 54 L108 108 L96 116 L62 116 L56 60Z" fill="url(#hatch)"/>` +
+      `<path d="M70 44 L72 112 M90 46 L96 112" stroke="#8a2a22" stroke-width="2"/>` +
+      `<rect x="72" y="84" width="24" height="20" rx="4" fill="#4c8a3c"/>` +
+      `<rect x="56" y="24" width="58" height="18" rx="9" fill="#3e7fd0"/><circle cx="104" cy="33" r="8" fill="#5b9be0"/>` +
+      `<path d="M104 33 m-4 0 a4 4 0 1 1 4 4" stroke="#1d4e9a" stroke-width="1.6" fill="none"/>` +
+      `<circle cx="46" cy="30" r="13" fill="#2a2420"/>` +
+      `<ellipse cx="46" cy="22" rx="24" ry="7" fill="#f2f2ee"/><path d="M34 22 Q36 6 48 6 Q60 6 60 22Z" fill="#f6f6f2"/>` +
+      `<path d="M30 22 Q46 28 66 22" stroke="#bdbdb6" stroke-width="1.4" fill="none"/>`),
+    s6trees: svg('140 170', fir(36, 162, 150, '#2f7a5f') + fir(100, 164, 90, '#9a4a32') + fir(76, 166, 60, '#3f8c6a')),
+    endMark: `<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g ${F}>` +
+      `<path d="M0 90 V64 L40 40 L70 54 L110 16 L124 10 L140 22 L170 50 L200 44 V90Z" fill="#8fb8c6"/>` +
+      `<path d="M110 16 L124 10 L140 22 L130 28 L124 20 L116 28Z" fill="#f3f7f5"/>` +
+      `<path d="M0 90 V74 L60 66 L120 74 L200 64 V90Z" fill="#78ae86"/>` + fir(30, 86, 30, '#2f7a5f', false) + fir(176, 84, 26, '#3f8c6a', false) + `</g></svg>`
+  };
+
+  /* ---------- content ---------- */
+  const wash = {
+    sky:  'linear-gradient(to bottom, rgba(143,195,217,.30), rgba(168,198,108,.22) 52%, rgba(227,240,225,0) 72%)',
+    snow: 'linear-gradient(to bottom, rgba(200,224,232,.45), rgba(90,140,120,.20) 55%, rgba(227,240,225,0) 74%)',
+    ridge:'linear-gradient(to bottom, rgba(170,200,215,.40), rgba(230,240,244,.5) 50%, rgba(227,240,225,0) 72%)',
+    creek:'linear-gradient(to bottom, rgba(143,195,217,.28), rgba(120,180,120,.26) 50%, rgba(92,176,210,.18) 64%, rgba(227,240,225,0) 76%)',
+    wood: 'linear-gradient(to bottom, rgba(60,120,90,.30), rgba(140,170,110,.22) 55%, rgba(227,240,225,0) 76%)',
+    trail:'linear-gradient(to bottom, rgba(143,195,217,.30), rgba(120,174,134,.26) 54%, rgba(227,240,225,0) 76%)'
+  };
+
+  // cards: x / w as fractions of the spread width; y = where the hinge sits, as a fraction of page height from the top
+  const spreads = [
+    { // 0 cover
+      title:'行腳的記憶', eyebrow:'封面',
+      body:['這本立體書以手繪封面〈行腳的記憶〉為起點：一位背著紅色背包的山友，站在岩石上舉起相機，望向層層山稜。翻開它，跟著他走進位在台灣中北部的雪霸國家公園。','點封面或「翻開」開始。也可以用鍵盤左右鍵、或在書上左右滑動翻頁。'],
+      facts:[['跨頁','6 個'],['主角','雪霸國家公園']]
+    },
+    { title:'走進雪霸', eyebrow:'第一跨頁 · 簡介', wash:wash.sky,
+      left:{kicker:'第一站', h:'走進雪霸', p:'1992 年成立，台灣第五座國家公園。'},
+      right:{big:'76,850', unit:'公頃', cap:'新竹 · 苗栗 · 臺中'},
+      cards:[ {a:'s1range', x:.05, w:.9, y:.30}, {a:'s1green', x:.09, w:.82, y:.46}, {a:'s1trees', x:.05, w:.15, y:.62}, {a:'s1sign', x:.66, w:.27, y:.70} ],
+      body:['雪霸國家公園在 1992 年 7 月 1 日成立，是台灣第五座國家公園。園區橫跨新竹縣、苗栗縣與臺中市，以雪山山脈為骨幹，最高點是海拔 3,886 公尺的雪山。','名字取自園內最具代表性的兩座山：雪山與大霸尖山。從溪谷、森林一路到高山草原與裸岩，海拔落差很大，也孕育出豐富的動植物。'],
+      facts:[['成立','1992 年 7 月 1 日'],['面積','約 76,850 公頃'],['最高點','雪山 3,886 m'],['行政區','新竹 · 苗栗 · 臺中']]
+    },
+    { title:'雪山與黑森林', eyebrow:'第二跨頁 · 雪山', wash:wash.snow,
+      left:{kicker:'第二站', h:'雪山與黑森林', p:'台灣第二高峰，山頂下藏著冰河圈谷。'},
+      right:{big:'3,886', unit:'m', cap:'雪山主峰 · 台灣第二高峰'},
+      cards:[ {a:'s2peak', x:.17, w:.66, y:.30}, {a:'s2forest', x:.12, w:.76, y:.48}, {a:'s2trees', x:.05, w:.14, y:.62}, {a:'s2hut', x:.68, w:.24, y:.68} ],
+      body:['雪山海拔 3,886 公尺，是僅次於玉山的台灣第二高峰。主峰下方有碗狀的「圈谷」，是古代冰河刨蝕留下的地形，也是台灣曾有冰河的重要證據。','登頂前會穿過「黑森林」。這片林子由台灣冷杉組成，樹冠濃密，林下陰暗安靜，是高海拔特有的景象。許多山友會在東峰與主峰之間草坡上的三六九山莊過夜，隔天清晨攻頂。'],
+      facts:[['主峰','3,886 m'],['地形','冰河圈谷'],['森林','台灣冷杉'],['山屋','三六九山莊']]
+    },
+    { title:'聖稜線與大霸尖山', eyebrow:'第三跨頁 · 聖稜線', wash:wash.ridge,
+      left:{kicker:'第三站', h:'聖稜線', p:'從雪山一路向北，連到大霸尖山。'},
+      right:{big:'3,492', unit:'m', cap:'大霸尖山 · 世紀奇峰'},
+      cards:[ {a:'s3ridge', x:.03, w:.94, y:.28}, {a:'s3daba', x:.46, w:.28, y:.50}, {a:'s3xiaoba', x:.75, w:.15, y:.52}, {a:'s3cloud', x:.06, w:.88, y:.64} ],
+      body:['從雪山往北延伸到大霸尖山的高山稜線，被稱為「聖稜線」，沿途岩峰起伏、雲海翻湧，是台灣最知名的高山縱走路線之一。','大霸尖山海拔 3,492 公尺，山頭像一只直立的酒桶，被稱為「世紀奇峰」，也是泰雅族與賽夏族心中的聖山。為了保護山體與登山安全，現在不開放攀登霸頂，山友多在山腳仰望它。'],
+      facts:[['大霸尖山','3,492 m'],['外號','世紀奇峰'],['意義','泰雅族、賽夏族聖山'],['規定','禁止攀登霸頂']]
+    },
+    { title:'武陵與櫻花鉤吻鮭', eyebrow:'第四跨頁 · 武陵', wash:wash.creek,
+      left:{kicker:'第四站', h:'武陵溪谷', p:'七家灣溪裡，住著冰河時期留下的鮭魚。'},
+      right:{big:'17', unit:'°C 以下', cap:'櫻花鉤吻鮭需要的冰涼溪水'},
+      cards:[ {a:'s4range', x:.05, w:.9, y:.28}, {a:'s4forest', x:.07, w:.86, y:.46}, {a:'s4stream', x:.08, w:.84, y:.64}, {a:'s4fish', x:.41, w:.19, y:.74, stand:-14} ],
+      body:['武陵地區的七家灣溪，是櫻花鉤吻鮭的家。牠是冰河時期遺留下來的陸封型鮭魚，無法再游回大海，只能生活在大甲溪上游冰涼、清澈的溪段，被稱為台灣的「國寶魚」。','國家公園在武陵進行棲地保育與復育，也設有生態中心介紹牠的故事。春天時，武陵的櫻花沿著山谷綻放，是熱門的賞櫻地點。'],
+      facts:[['棲地','七家灣溪'],['身分','冰河孑遺 · 陸封型鮭魚'],['水溫','約 17°C 以下'],['季節亮點','春季櫻花']]
+    },
+    { title:'山林裡的住民', eyebrow:'第五跨頁 · 生態', wash:wash.wood,
+      left:{kicker:'第五站', h:'山林住民', p:'黑熊、帝雉、長鬃山羊與山椒魚。'},
+      right:{big:'觀霧', unit:'', cap:'雲的故鄉 · 檜山巨木群'},
+      cards:[ {a:'s5tree', x:.05, w:.28, y:.42}, {a:'s5serow', x:.70, w:.22, y:.40}, {a:'s5bear', x:.40, w:.19, y:.58}, {a:'s5pheasant', x:.64, w:.25, y:.66}, {a:'s5sala', x:.16, w:.17, y:.72} ],
+      body:['台灣黑熊胸前有 V 字形白斑，是台灣最大的陸域哺乳動物；帝雉（黑長尾雉）是台灣特有種，也出現在千元鈔上；長鬃山羊擅長在陡峭的崖壁間跳躍。','在西側的觀霧，雲霧終年繚繞，被稱為「雲的故鄉」。這裡有千年紅檜組成的檜山巨木群，也住著觀霧山椒魚。山椒魚是冰河時期留下的兩生類，只在冷涼潮濕的高山環境生存。'],
+      facts:[['哺乳類','台灣黑熊 · 長鬃山羊'],['鳥類','帝雉（台灣特有種）'],['兩生類','觀霧山椒魚'],['巨木','檜山紅檜']]
+    },
+    { title:'行腳路線：雪山主東峰線', eyebrow:'第六跨頁 · 上山去', wash:wash.trail,
+      left:{kicker:'第六站', h:'行腳路線', p:'從武陵登山口出發，走向雪山主峰。'},
+      right:{big:'10.9', unit:'km', cap:'雪山主東峰線 · 單程約'},
+      cards:[ {a:'s6range', x:.05, w:.9, y:.36}, {a:'s6trees', x:.05, w:.16, y:.62}, {a:'s6hiker', x:.66, w:.17, y:.76} ],
+      body:['雪山主東峰線是最多人走的雪山路線，通常安排兩到三天。出發前要先申請入園許可，山屋床位採抽籤，記得提早規劃。高山天氣變化快，請帶足保暖衣物，留意高山症，垃圾全部帶下山。'],
+      route:[['武陵登山口','起點，雪山登山服務站','2,140 m'],['七卡山莊','第一個山屋，適合調整步伐','2,463 m'],['哭坡','陡上的之字坡，名字說明一切',''],['雪山東峰','第一座百岳','3,201 m'],['三六九山莊','草坡上的紅頂山屋','約 3,100 m'],['黑森林 · 圈谷','冷杉林與冰河地形',''],['雪山主峰','台灣第二高峰','3,886 m']],
+      facts:null
+    },
+    { title:'謝謝你一起走完', eyebrow:'封底',
+      body:['書合起來了，山還在那裡。下次走進雪霸，記得「留下足跡，帶走回憶」，把這段行腳的記憶，也畫進自己的筆記本裡。'],
+      facts:null, restart:true
+    }
+  ];
+  const NS = spreads.length - 1; // last state index (back cover)
+  const NL = NS;                 // number of leaves (each turn flips one)
+
+  /* ---------- build pages ---------- */
+  const leavesEl = document.getElementById('leaves');
+  const popsEl = document.getElementById('pops');
+  const grainURI = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .25  0 0 0 0 .32  0 0 0 0 .27  0 0 0 .55 -.18'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
+  document.documentElement.style.setProperty('--grain', grainURI);
+
+  function pageHTML(k, side){
+    const sp = spreads[k], d = sp[side];
+    const folio = side === 'left' ? k * 2 : k * 2 + 1;
+    let inner;
+    if (side === 'left'){
+      inner = `<div class="pg-text"><span class="pg-kicker">${d.kicker}</span><h3>${d.h}</h3><p>${d.p}</p></div>`;
+    } else {
+      inner = `<div class="pg-text" style="align-items:flex-end;text-align:right"><div class="pg-big">${d.big}${d.unit?`<small>${d.unit}</small>`:''}</div><div class="pg-cap">${d.cap}</div></div>`;
+    }
+    return `<div class="pg" style="--wash:${sp.wash}">${inner}<span class="folio">${folio}</span></div>`;
+  }
+  const leaves = [];
+  for (let i = 0; i < NL; i++){
+    const leaf = document.createElement('div');
+    leaf.className = 'leaf';
+    const front = i === 0 ? `<div class="face front cover" role="img" aria-label="封面：行腳的記憶"></div>` : `<div class="face front">${pageHTML(i, 'right')}</div>`;
+    const back = i === NL - 1
+      ? `<div class="face back"><div class="pg pg-end">${ART.endMark}<div class="t">行腳的記憶</div><div class="s">雪霸國家公園 · 立體書</div><div class="s">留下足跡，帶走回憶</div></div></div>`
+      : `<div class="face back">${pageHTML(i + 1, 'left')}</div>`;
+    leaf.innerHTML = front + back;
+    leavesEl.appendChild(leaf);
+    leaves.push(leaf);
+  }
+  const popSets = [];
+  spreads.forEach((sp, k) => {
+    if (!sp.cards) { popSets[k] = []; return; }
+    const pop = document.createElement('div');
+    pop.className = 'pop';
+    sp.cards.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.style.left = (c.x * 100) + '%';
+      el.style.width = (c.w * 100) + '%';
+      el.style.bottom = ((1 - c.y) * 100) + '%';
+      if (c.stand) el.style.setProperty('--stand', c.stand + 'deg');
+      el.innerHTML = ART[c.a];
+      pop.appendChild(el);
+    });
+    popsEl.appendChild(pop);
+    popSets[k] = [...pop.children];
+  });
+
+  /* ---------- state ---------- */
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = reduce ? {fold:0, flip:0, step:0} : {fold:380, flip:900, step:140};
+  const book = document.getElementById('book');
+  const hint = document.getElementById('hint');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const dotsEl = document.getElementById('dots');
+  const notes = document.getElementById('notes');
+  let s = 0, busy = false;
+
+  spreads.forEach((sp, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.title = sp.title; b.setAttribute('aria-label', '翻到：' + sp.title);
+    b.addEventListener('click', e => { e.stopPropagation(); goTo(k); });
+    dotsEl.appendChild(b);
+  });
+
+  function placeLeaf(i, flipped, lift){
+    const z = (flipped ? i : (NL - i)) * 0.5 + (lift ? 2 : 0);
+    leaves[i].style.transform = `translateZ(${z}px) rotateY(${flipped ? -180 : 0}deg)`;
+  }
+  function setBookClass(){
+    book.classList.toggle('closed-front', s === 0);
+    book.classList.toggle('closed-back', s === NS);
+  }
+  function setCards(k, up){
+    (popSets[k] || []).forEach((c, i) => {
+      c.style.transitionDelay = up ? (reduce ? '0ms' : (i * 110) + 'ms') : '0ms';
+      c.classList.toggle('up', up);
+    });
+  }
+  function esc(t){ return t; }
+  function renderNotes(){
+    const sp = spreads[s];
+    let h = `<div class="eyebrow">${sp.eyebrow}</div><h2>${sp.title}</h2>`;
+    h += sp.body.map(p => `<p>${esc(p)}</p>`).join('');
+    if (sp.route) h += `<ol class="route">${sp.route.map(r => `<li><div><b>${r[0]}</b><span>${r[1]}</span></div><em>${r[2]}</em></li>`).join('')}</ol>`;
+    if (sp.facts) h += `<dl class="facts">${sp.facts.map(f => `<div><dt>${f[0]}</dt><dd>${f[1]}</dd></div>`).join('')}</dl>`;
+    if (sp.restart) h += `<button class="restart" id="restart" type="button">從封面再讀一次</button>`;
+    h += `<div class="src">海拔與面積數字參考雪霸國家公園管理處公開資料，實際登山請以官方最新公告為準。</div>`;
+    notes.innerHTML = h;
+    const r = document.getElementById('restart');
+    if (r) r.addEventListener('click', () => goTo(0));
+    prevBtn.disabled = s === 0;
+    nextBtn.disabled = s === NS;
+    nextBtn.textContent = s === 0 ? '翻開 →' : '下一頁 →';
+    [...dotsEl.children].forEach((d, k) => d.setAttribute('aria-current', k === s ? 'true' : 'false'));
+    hint.textContent = s === 0 ? '點封面翻開' : s === NS ? '點書本回到前面' : '點右頁翻下一頁';
+  }
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  async function goTo(n){
+    if (busy || n < 0 || n > NS || n === s) return;
+    busy = true;
+    const from = s;
+    setCards(from, false);
+    notes.classList.add('fade');
+    if (popSets[from] && popSets[from].length) await wait(T.fold);
+    s = n; renderNotes(); notes.classList.remove('fade');
+    hint.classList.add('off');
+    const dir = n > from ? 1 : -1;
+    const order = [];
+    for (let i = 0; i < NL; i++){
+      const shouldFlip = i < n, was = i < from;
+      if (shouldFlip !== was) order.push(i);
+    }
+    if (dir < 0) order.reverse();
+    setBookClass();
+    order.forEach((i, j) => setTimeout(() => placeLeaf(i, i < n, true), j * T.step));
+    await wait(T.flip + Math.max(0, order.length - 1) * T.step);
+    for (let i = 0; i < NL; i++) placeLeaf(i, i < s, false);
+    setCards(s, true);
+    busy = false;
+  }
+
+  for (let i = 0; i < NL; i++) placeLeaf(i, false, false);
+  renderNotes();
+
+  prevBtn.addEventListener('click', () => goTo(s - 1));
+  nextBtn.addEventListener('click', () => goTo(s + 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') goTo(s + 1);
+    if (e.key === 'ArrowLeft') goTo(s - 1);
+  });
+  const stage = document.getElementById('stage');
+  let sx = null, swiped = false;
+  stage.addEventListener('pointerdown', e => { sx = e.clientX; swiped = false; });
+  stage.addEventListener('pointerup', e => {
+    if (sx === null) return;
+    const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) > 40){ swiped = true; goTo(s + (dx < 0 ? 1 : -1)); }
+  });
+  stage.addEventListener('click', e => {
+    if (swiped) return;
+    if (s === 0) return goTo(1);
+    if (s === NS) return goTo(NS - 1);
+    const r = stage.getBoundingClientRect();
+    goTo(s + (e.clientX - r.left > r.width / 2 ? 1 : -1));
+  });
+})();
+</script>
+<!--ARTIFACT-END-->
+</body>
+</html>
